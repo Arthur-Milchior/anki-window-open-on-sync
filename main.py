@@ -26,13 +26,14 @@ AnkiQt.onSync = onSync
 
 
 def _onSync(self, action: Optional[str] = None):
-    state_before_sync = self._current_state()
+    state_before_sync = self._current_state() # new
     cancelled = self._sync(action)
     if action:
         if not self.loadCollection():
             return
-    else:
+    else:# new
         self._set_state(state_before_sync)
+        self.col.load()
         self.reset()
     if not cancelled:
         # don't sync media if the sync was cancelled
@@ -56,6 +57,8 @@ def _sync(self, action: Optional[str] = None):
 
 AnkiQt._sync = _sync
 
+# New methods
+###########
 
 def _current_state(self):
     if not self.col:
