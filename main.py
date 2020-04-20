@@ -52,7 +52,7 @@ def _sync(self, action: Optional[str] = None):
     self.syncer = SyncManager(self, self.pm, action=action)
     self.syncer.sync()
     self.app.setQuitOnLastWindowClosed(True)
-    return self.syncer.thread.fullSyncChoice == "cancel"
+    return self.syncer._thread.fullSyncChoice == "cancel"
 
 
 AnkiQt._sync = _sync
