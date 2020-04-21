@@ -18,7 +18,7 @@ def __init__(self, *args, col: _Collection = None, action: Optional[str] = None,
 
 
 SyncThread.__init__ = __init__
-
+ 
 
 def run(self):
     # init this first so an early crash doesn't cause an error
@@ -28,7 +28,8 @@ def run(self):
     if not self.gui_col:
         try:
             self.col = Collection(self.path)
-        except:
+        except Exception as e:
+            traceback.print_stack()
             self.fireEvent("corrupt")
             return
     self.server = RemoteServer(self.hkey, hostNum=self.hostNum)
@@ -63,7 +64,7 @@ def run(self):
         err = traceback.format_exc()
         self.fireEvent("error", err)
     finally:
-        if not self.gui_col:
+        if not self.gui_col: #condition is new
             # don't bump mod time unless we explicitly save
             self.col.close(save=False, downgrade=False)
         hooks.sync_stage_did_change.remove(syncEvent)
@@ -74,6 +75,7 @@ SyncThread.run = run
 
 
 def _fullSync(self):
+    # totally new
     if self.fullSyncChoice:
         self._fullSyncKnown()
     else:
@@ -90,9 +92,6 @@ def _fullSyncAsk(self):
     self.fireEvent("fullSync")
     while not self.fullSyncChoice:
         time.sleep(0.1)
-    choice = self.fullSyncChoice
-    self.fullSyncChoice = "cancel"
-    self.fireEvent("restart", choice)
 
 
 SyncThread._fullSyncAsk = _fullSyncAsk

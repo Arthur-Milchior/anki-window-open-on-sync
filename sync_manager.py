@@ -3,6 +3,7 @@ from typing import Optional
 
 from anki.lang import _
 from aqt.sync import SyncManager, SyncThread
+from aqt.utils import askUserDialog
 
 old_init = SyncManager.__init__
 
@@ -27,8 +28,8 @@ def _sync(self, auth=None):
         self.pm.profile["syncKey"],
         auth=auth,
         hostNum=self.pm.profile.get("hostNum"),
-        col=self.mw.col,
-        action=self.action,
+        col=self.mw.col, #new
+        action=self.action, #new
     )
     t._event.connect(self.onEvent)
     t.progress_event.connect(self.on_progress)
@@ -71,19 +72,45 @@ automatically."""
 
 
 SyncManager._sync = _sync
-
-old_onEvent = SyncManager.onEvent
-
-
-def onEvent(self, evt, *args, **kwargs):
-    if evt == "restart":
-        choice = args[0]
-        if choice in ("upload", "download"):
-            self.mw.onSync(choice)
-        else:
-            assert self.thread.fullSyncChoice == "cancel"
+def _confirmFullSync(self):
+    self.mw.progress.finish()
+    if self.thread.localIsEmpty:
+        diag = askUserDialog(
+            _("Local collection has no cards. Download from AnkiWeb?"),
+            [_("Download from AnkiWeb"), _("Cancel")],
+        )
+        diag.setDefault(1)
     else:
-        return old_onEvent(self, evt, *args, **kwargs)
+        diag = askUserDialog(
+            _(
+                """\
+Your decks here and on AnkiWeb differ in such a way that they can't \
+be merged together, so it's necessary to overwrite the decks on one \
+side with the decks from the other.
 
+If you choose download, Anki will download the collection from AnkiWeb, \
+and any changes you have made on your computer since the last sync will \
+be lost.
 
-SyncManager.onEvent = onEvent
+If you choose upload, Anki will upload your collection to AnkiWeb, and \
+any changes you have made on AnkiWeb or your other devices since the \
+last sync to this device will be lost.
+
+After all devices are in sync, future reviews and added cards can be merged \
+automatically."""
+            ),
+            [_("Upload to AnkiWeb"), _("Download from AnkiWeb"), _("Cancel")],
+        )
+        diag.setDefault(2)
+    self.mw.progress.start(immediate=True)
+    ret = diag.run()
+    if ret == _("Upload to AnkiWeb"):
+        self.thread.fullSyncChoice = "upload"
+        self.mw.onSyncForce("upload") # new call
+    elif ret == _("Download from AnkiWeb"):
+        self.thread.fullSyncChoice = "download"
+        self.mw.onSyncForce("download") # new call
+    else:
+        self.thread.fullSyncChoice = "cancel"
+    # case cancel removed
+SyncManager._confirmFullSync = _confirmFullSync

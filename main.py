@@ -12,32 +12,33 @@ class State:
     mid: int
 
 
-def onSync(self, action: Optional[str] = None):
+def onSyncForce(self, action: str): #new method
+    self.unloadCollection(lambda: self._onSync(action=action))
+AnkiQt.onSyncForce = onSyncForce
+
+def onSync(self):
     if self.media_syncer.is_syncing():
         self.media_syncer.show_sync_log()
     else:
-        if action:
-            self.unloadCollection(lambda: self._onSync(action=action))
-        else:
-            self._onSync()
+        # new else branch.
+        self.col.save(trx=False)
+        self._onSync()
 
 
 AnkiQt.onSync = onSync
 
 
 def _onSync(self, action: Optional[str] = None):
-    state_before_sync = self._current_state() # new
-    cancelled = self._sync(action)
+    state_before_sync = self._current_state()
+    self._sync(action)
     if action:
         if not self.loadCollection():
             return
-    else:# new
-        self._set_state(state_before_sync)
+    else:
         self.col.load()
+        self._set_state(state_before_sync)
         self.reset()
-    if not cancelled:
-        # don't sync media if the sync was cancelled
-        self.media_syncer.start()
+    self.media_syncer.start()
 
 
 AnkiQt._onSync = _onSync
@@ -49,10 +50,9 @@ def _sync(self, action: Optional[str] = None):
 
     self.state = "sync"
     self.app.setQuitOnLastWindowClosed(False)
-    self.syncer = SyncManager(self, self.pm, action=action)
+    self.syncer = SyncManager(self, self.pm, action=action)# new "action"
     self.syncer.sync()
     self.app.setQuitOnLastWindowClosed(True)
-    return self.syncer._thread.fullSyncChoice == "cancel"
 
 
 AnkiQt._sync = _sync
