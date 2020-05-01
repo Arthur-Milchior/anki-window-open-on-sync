@@ -102,7 +102,6 @@ automatically."""
             [_("Upload to AnkiWeb"), _("Download from AnkiWeb"), _("Cancel")],
         )
         diag.setDefault(2)
-    self.mw.progress.start(immediate=True)
     ret = diag.run()
     if ret == _("Upload to AnkiWeb"):
         self.thread.fullSyncChoice = "upload"
